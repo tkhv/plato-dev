@@ -1,0 +1,4 @@
+ffmpeg-python
+scipy
+websocket-client
+numpy==1.26.4

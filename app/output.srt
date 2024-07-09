@@ -1,0 +1,20 @@
+1
+00:00:00,000 --> 00:00:07,719
+ Hey, how's it going hey Rocky? I'm doing great. How about you? I'm awesome. Listen, I got some huge news. Oh
+
+2
+00:00:07,719 --> 00:00:10,720
+ Oh, do tell. I'm all ears.
+
+3
+00:00:10,720 --> 00:00:13,720
+ Well, in a few minutes, I'm going to be interviewing at OpenAI.
+
+4
+00:00:13,720 --> 00:00:14,720
+ Have you heard of them?
+
+5
+00:00:14,720 --> 00:00:16,719
+ OpenAI? Huh?
+
