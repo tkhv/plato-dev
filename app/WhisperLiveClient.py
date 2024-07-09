@@ -10,7 +10,8 @@ import uuid
 import time
 import ffmpeg
 import utils
-
+import base64
+import audioop
 
 class Client:
     """
@@ -367,31 +368,56 @@ class TranscriptionTeeClient:
             filename (str): The path to the audio file to be played and sent to the server.
         """
 
-        # read audio and create pyaudio stream
-        with wave.open(filename, "rb") as wavfile:
-            try:
-                while any(client.recording for client in self.clients):
-                    data = wavfile.readframes(self.chunk)
-                    if data == b"":
-                        break
+        payloads = []
+        with open('media_payloads.txt', 'r') as file:
+            for line in file:
+                payloads.append(line.strip())
+        file.close()
 
-                    audio_array = self.bytes_to_float_array(data)
-                    time.sleep(0.2)
-                    self.multicast_packet(audio_array.tobytes())
+        audio_data = bytearray()
+        for payload in payloads:
+            payload_mulaw = base64.b64decode(payload)
+            payload_pcm = audioop.ulaw2lin(payload_mulaw, 2)
+            audio_data.extend(payload_pcm)
 
-                wavfile.close()
+            if len(audio_data) > 20:
+                float32_data = np.frombuffer(audio_data, np.int16).flatten().astype(np.float32) / 32768.0
+                audio_data = bytearray()
+                time.sleep(0.01)
+                print("multicast!")
+                self.multicast_packet(float32_data.tobytes())
 
-                for client in self.clients:
-                    client.wait_before_disconnect()
-                self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
-                self.write_all_clients_srt()
-                self.close_all_clients()
+        for client in self.clients:
+            client.wait_before_disconnect()
+        self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+        self.write_all_clients_srt()
+        self.close_all_clients()
 
-            except KeyboardInterrupt:
-                wavfile.close()
-                self.close_all_clients()
-                self.write_all_clients_srt()
-                print("[INFO]: Keyboard interrupt.")
+        # # read audio and create pyaudio stream
+        # with wave.open(filename, "rb") as wavfile:
+        #     try:
+        #         while any(client.recording for client in self.clients):
+        #             data = wavfile.readframes(self.chunk)
+        #             if data == b"":
+        #                 break
+
+        #             audio_array = self.bytes_to_float_array(data)
+        #             time.sleep(0.2)
+        #             self.multicast_packet(audio_array.tobytes())
+
+        #         wavfile.close()
+
+        #         for client in self.clients:
+        #             client.wait_before_disconnect()
+        #         self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+        #         self.write_all_clients_srt()
+        #         self.close_all_clients()
+
+        #     except KeyboardInterrupt:
+        #         wavfile.close()
+        #         self.close_all_clients()
+        #         self.write_all_clients_srt()
+        #         print("[INFO]: Keyboard interrupt.")
 
     def process_rtsp_stream(self, rtsp_url):
         """
