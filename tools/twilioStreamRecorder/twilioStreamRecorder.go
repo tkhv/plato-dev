@@ -33,7 +33,6 @@ type callStreamRecord struct {
 	Messages         		[]WebSocketMessage `json:"messages"`
 }
 
-// Struct for WebSocket message
 type WebSocketMessage struct {
 	Event    string          `json:"event"`
 	StreamSid string         `json:"streamSid,omitempty"`
@@ -68,25 +67,12 @@ func callStreamWebSocket(c *gin.Context) {
     }
     defer ws.Close()
 
-		// Ensure the directory exists
-    dirPath := "../recordedStreams"
-    if err := os.MkdirAll(dirPath, 0755); err != nil {
-        log.Fatal("Failed to create directory: ", err)
-    }
-
-		// Now, try to open or create the file
-    filePath := dirPath + "/recordedStream.json"
-    file, err := os.OpenFile(filePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
-    if err != nil {
-        log.Fatal("Failed to open file: ", err)
-    }
-    defer file.Close()
-
 		var callStartTime time.Time
 		var callDuration time.Duration
 		var mediaPayloadSize = 0
 		var mediaPayloadCount = 0
 		var messages []WebSocketMessage = make([]WebSocketMessage, 0)
+		var writeToFile = true
 
     for {
 				// Unmarshal ws message json
@@ -106,6 +92,10 @@ func callStreamWebSocket(c *gin.Context) {
 				
 				// ws message handling
         switch data.Event {
+					case "simulator_start":
+						// To prevent writing to file if the payloads are from the sim.
+						fmt.Println("simulator started")
+						writeToFile = false
 					case "connected":
 							fmt.Println("call connected")
 					case "start":
@@ -137,7 +127,7 @@ func callStreamWebSocket(c *gin.Context) {
 							fmt.Println("twilio stopped")
         }
     }
-
+		
 		// After the loop, create wsStreamRecord instance
     record := callStreamRecord{
 			CallDurationMs: 		callDuration.Milliseconds(),
@@ -148,24 +138,40 @@ func callStreamWebSocket(c *gin.Context) {
 		}
 
 		fmt.Println(" === CALL STREAM RECORD === ")
-		fmt.Printf("Call duration (ms): %v\n", callDuration)
+		fmt.Printf("Call duration (ms): %v\n", callDuration.Milliseconds())
 		fmt.Printf("Media payload count: %d\n", mediaPayloadCount)
 		fmt.Printf("Media payload size: %d\n", mediaPayloadSize)
 		fmt.Printf("Media payloads per second: %d\n", record.MediaPayloadsPerSec)
 		fmt.Println(" ========================== ")
 
-		// Marshal wsStreamRecord to JSON
-		recordBytes, err := json.MarshalIndent(record, "", "	")
-		if err != nil {
-				log.Println("Failed to marshal record: ", err)
-				return
-		}
+		if writeToFile {
+				// Ensure the directory exists
+				dirPath := "../recordedStreams"
+				if err := os.MkdirAll(dirPath, 0755); err != nil {
+						log.Fatal("Failed to create directory: ", err)
+				}
+		
+				// Now, try to open or create the file
+				filePath := dirPath + "/recordedStream.json"
+				file, err := os.OpenFile(filePath, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+						log.Fatal("Failed to open file: ", err)
+				}
+				defer file.Close()
 
-		// Write JSON to file
-		if _, err := file.Write(recordBytes); err != nil {
-				log.Println("Failed to write record to file. \n\n", err)
-		} else {
-				fmt.Printf("Call stream record written to file %s\n\n", file.Name())
+				// Marshal wsStreamRecord to JSON
+				recordBytes, err := json.MarshalIndent(record, "", "	")
+				if err != nil {
+						log.Println("Failed to marshal record: ", err)
+						return
+				}
+
+				// Write JSON to file
+				if _, err := file.Write(recordBytes); err != nil {
+						log.Println("Failed to write record to file. \n\n", err)
+				} else {
+						fmt.Printf("Call stream record written to file %s\n\n", file.Name())
+				}
 		}
 }
 
