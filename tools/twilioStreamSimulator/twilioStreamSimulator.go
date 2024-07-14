@@ -11,23 +11,23 @@ import (
 )
 
 const (
-		Port 							= 8000
-		WebSocketRoute    = "/stream"
-		recordedStreamsFilepath = "../recordedStreams/recordedStream.json"
+	Port = 8000
+	WebSocketRoute = "/stream"
+	recordedStreamsFilepath = "../recordedStreams/recordedStream.json"
 )
 
 type callStreamRecord struct {
-	CallDurationMs		 	int64      				 `json:"callDurationMs"`
-	MediaPayloadSize 		int                `json:"mediaPayloadSize"`
-	MediaPayloadCount		int                `json:"mediaPayloadCount"`
-	MediaPayloadsPerSec	int                `json:"mediaPayloadsPerSec"`
-	Messages         		[]WebSocketMessage `json:"messages"`
+	CallDurationMs int64 `json:"callDurationMs"`
+	MediaPayloadSize int `json:"mediaPayloadSize"`
+	MediaPayloadCount int `json:"mediaPayloadCount"`
+	MediaPayloadsPerSec	int `json:"mediaPayloadsPerSec"`
+	Messages []WebSocketMessage `json:"messages"`
 }
 
 type WebSocketMessage struct {
-	Event    string          `json:"event"`
-	StreamSid string         `json:"streamSid,omitempty"`
-	Media    *MediaPayload   `json:"media,omitempty"`
+	Event string `json:"event"`
+	StreamSid string `json:"streamSid,omitempty"`
+	Media *MediaPayload `json:"media,omitempty"`
 }
 
 type MediaPayload struct {
@@ -59,13 +59,13 @@ func main() {
 
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-			log.Fatal("Failed to connect to WebSocket server: ", err)
+		log.Fatal("Failed to connect to WebSocket server: ", err)
 	}
 	defer c.Close()
 
 	err = c.WriteJSON(WebSocketMessage{Event: "simulator_start"})
 	if err != nil {
-			log.Fatal("Failed to send simulator_start message: ", err)
+		log.Fatal("Failed to send simulator_start message: ", err)
 	}
 	
 	var callStreamRecord = parseRecordedStreamJSON(recordedStreamsFilepath)
@@ -85,7 +85,7 @@ func main() {
 
 		err := c.WriteJSON(msg)
 		if err != nil {
-				log.Fatal("Failed to send message: ", err)
+			log.Fatal("Failed to send message: ", err)
 		}
 	}
 }
